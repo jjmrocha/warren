@@ -1,0 +1,8 @@
+github.com/jjmrocha/ai-chat v0.4.1 h1:lFAHWlJaT8CHUf4N7qVtHJ76XjW5G8f4/Sr7YI2Q3BE=
+github.com/jjmrocha/ai-chat v0.4.1/go.mod h1:IzqXmQUviPCW/UHDIxlrorvZMqeyWvYTk4BPeIT/yu0=
+github.com/jjmrocha/ai-toolkit v0.3.0 h1:8yc9Ni75OEE6Z+BIRdtuohso4A2EoUQzS3o0S4Nn3so=
+github.com/jjmrocha/ai-toolkit v0.3.0/go.mod h1:hydTAnebHPUa1+uzhYwI7CkhC7zmJEyGo8iSY40BRe4=
+github.com/jjmrocha/go-algo v0.1.2 h1:ZtxdKumRXsqv0hUcf29NMxcpyKYtfaVAKcB+OE5AlxE=
+github.com/jjmrocha/go-algo v0.1.2/go.mod h1:l6KK2EOYd8czVnXwY3c4q96ZA1bjB24E0hv4bGmWdRk=
+github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
+github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
