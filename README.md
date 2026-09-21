@@ -23,8 +23,9 @@ write-ups. There is nothing in `~/.config`.
 
 **It works through skills.** Asked what a business is worth, warren loads
 `buffett-valuation`; asked what a company actually does, it loads `company-research`. The
-skills are not warren's own: they live in `~/.claude/skills`, you install them yourself, and
-you can edit them.
+skills are not warren's own: they come from
+[investing-skills](https://github.com/jjmrocha/investing-skills), they live in
+`~/.claude/skills`, you install them yourself, and you can edit them.
 
 warren itself is small — the prompt, the configuration and the wiring. The parts under it
 are:
@@ -33,6 +34,7 @@ are:
 |---|---|
 | [ai-toolkit](https://github.com/jjmrocha/ai-toolkit) | The agent loop, the LLM clients (OpenRouter, Anthropic, Ollama), the tool packs and the skill loader |
 | [ai-chat](https://github.com/jjmrocha/ai-chat) | The chat core, the terminal UI and the slash commands |
+| [investing-skills](https://github.com/jjmrocha/investing-skills) | `buffett-valuation` and `company-research` — the two skills warren refuses to start without |
 
 You bring the model. warren talks to OpenRouter, Anthropic or a local Ollama, whichever
 `warren.json` names.
@@ -41,16 +43,32 @@ You bring the model. warren talks to OpenRouter, Anthropic or a local Ollama, wh
 
 ## Install
 
-**1. Prerequisites**
+### 1. Prerequisites
 
 | What | Why | How |
 |---|---|---|
 | Go 1.27+ | Building warren | [go.dev/dl](https://go.dev/dl/) |
-| `uvx` on `PATH` | Runs the yfinance MCP server, which serves the market data | [uv](https://github.com/astral-sh/uv) |
-| Two skills in `~/.claude/skills` | warren refuses to start without them | See [Install the skills](#required--install-the-skills) |
+| `donsetch` on `PATH` | Web search, page fetching and crawling. **warren will not start without it** | [donsetch](https://github.com/dondai44423/donsetch) — no key, no account |
+| `uvx` on `PATH` | Runs the yfinance MCP server, if you turn it on | [uv](https://github.com/astral-sh/uv) |
 | An API key | Unless you run Ollama locally | [OpenRouter](https://openrouter.ai) or [Anthropic](https://console.anthropic.com) |
 
-**2. Build**
+### 2. Install the skills
+
+warren loads `buffett-valuation` and `company-research` by name at startup and refuses to run
+without them. Each must end up as `~/.claude/skills/<name>/SKILL.md`; no other folder is ever
+searched, and a missing skill stops warren with its name in the message.
+
+Both live in [investing-skills](https://github.com/jjmrocha/investing-skills). Clone it once
+and symlink them, so a `git pull` updates what warren loads:
+
+```bash
+git clone https://github.com/jjmrocha/investing-skills.git ~/SOURCES/investing-skills
+mkdir -p ~/.claude/skills
+ln -sfn ~/SOURCES/investing-skills/buffett-valuation ~/.claude/skills/
+ln -sfn ~/SOURCES/investing-skills/company-research  ~/.claude/skills/
+```
+
+### 3. Build
 
 ```bash
 git clone https://github.com/jjmrocha/warren.git && cd warren
@@ -63,7 +81,7 @@ folders, not from its own checkout.
 `go install github.com/jjmrocha/warren/cmd@latest` works too, but names the binary `cmd`,
 after its directory.
 
-**3. Export your key**
+### 4. Export your key
 
 ```bash
 export OPEN_ROUTER_KEY=sk-...
@@ -99,16 +117,32 @@ answers.
 
 ---
 
-## Manual steps
+## Using warren
 
-### Required — install the skills
+Run warren in the folder the work belongs in. Its file tools are rooted there and cannot
+leave it, so the write-ups it saves land beside the configuration that produced them.
 
-warren loads `buffett-valuation` and `company-research` by name at startup and refuses to run
-without them. Each must end up as `~/.claude/skills/<name>/SKILL.md`; no other folder is ever
-searched, and a missing skill stops warren with its name in the message.
+| Command | What it does |
+|---|---|
+| `/help` | List the commands |
+| `/model [name]` | Show the current model, or switch to another from `llm.models` |
+| `/effort [level]` | Show or change reasoning effort |
+| `/clear` | Reset the conversation |
+| `/compact` | Compact the context now, instead of waiting for warren to do it |
+| `/mcp [on\|off] [name]` | Show the MCP servers, or start and stop one |
+| `/skills` | List the skills warren loaded |
+| `/exit` | Quit |
 
-They ship with Anthropic's [skills](https://github.com/anthropics/skills) collection — copy
-the two folders into `~/.claude/skills`.
+### The tools it always has
+
+These are built into warren. None of them come from `warren.json`, and none can be turned
+off.
+
+| Tools | What they do |
+|---|---|
+| `file_read`, `file_write`, `file_edit`, `file_list`, `file_search`, `file_delete`, `file_workdir` | Read, change and search the files of the folder warren runs in — and nothing outside it |
+| `donsetch__web_search`, `donsetch__web_fetch`, `donsetch__web_crawl` | Search the web, read a page, walk a site — served by `donsetch` |
+| `current_date`, `current_time`, `time_zone` | Date a report's pull date or a valuation's as-of date, instead of guessing from what the model was trained on |
 
 ### Optional — market data
 
@@ -165,8 +199,8 @@ questions again; edit it and warren starts from what you wrote.
 A file that names an unknown provider or effort, a skill or an MCP server that is not a bare
 name, or an `mcps-on` server that is not in `mcps`, or that leaves the model empty or names an
 API-key variable that is not set, stops warren before the session opens — and the message
-lists every fault in the file, not just the first. An unknown key in the file is an error too, so a typo
-in a section name is caught rather than ignored.
+lists every fault in the file, not just the first. An unknown key in the file is an error too,
+so a typo in a section name is caught rather than ignored.
 
 ### A `warren.json` you did not write
 
@@ -183,37 +217,14 @@ it belongs to.
 
 ---
 
-## Using warren
-
-Run warren in the folder the work belongs in. Its file tools — `file_read`, `file_write`,
-`file_edit`, `file_list`, `file_delete`, `file_workdir` — are rooted there and cannot leave
-it, so the write-ups it saves land beside the configuration that produced them.
-
-| Command | What it does |
-|---|---|
-| `/help` | List the commands |
-| `/model [name]` | Show the current model, or switch to another from `llm.models` |
-| `/effort [level]` | Show or change reasoning effort |
-| `/clear` | Reset the conversation |
-| `/compact` | Compact the context now, instead of waiting for warren to do it |
-| `/mcp [on\|off] [name]` | Show the MCP servers, or start and stop one |
-| `/skills` | List the skills warren loaded |
-| `/exit` | Quit |
-
-Web search and page fetching are always on, and so are `current_date`, `current_time` and
-`time_zone`, which is how warren dates a report's pull date or a valuation's as-of date
-instead of guessing from what its model was trained on. None of these come from an MCP
-server.
-
----
-
 ## Troubleshooting
 
 warren validates what it can before the session opens, and the message names the fault.
 
 | Message | Cause | Fix |
 |---|---|---|
-| `skill folder not found: …` | A skill is missing from `~/.claude/skills` | Install it — every missing one is listed at once |
+| `error starting mcp donsetch: exec: "donsetch": executable file not found in $PATH` | The web tools have no server | Install [donsetch](https://github.com/dondai44423/donsetch) and put it on `PATH` |
+| `skill folder not found: …` | A skill is missing from `~/.claude/skills` | Install it from [investing-skills](https://github.com/jjmrocha/investing-skills) — every missing one is listed at once |
 | `api key variable is not set` | `api-key-env` names a variable with no value | `export` it, or point `api-key-env` at the one you use |
 | `config not found: warren.json` | The file vanished between setup and startup | Run warren again; it asks the two questions |
 | `no answer to read` | Setup ran with nothing on stdin — a pipe, a redirect, or Ctrl-D at a question | Run warren from a terminal and answer the questions; nothing is left broken, the next run simply asks again |
@@ -223,7 +234,8 @@ warren validates what it can before the session opens, and the message names the
 | `json: unknown field …` | A misspelled key in `warren.json` | Fix the spelling — warren does not ignore keys it does not know |
 
 An `mcps-on` server that fails to start does *not* stop warren. The failure prints before the
-TUI opens and `/mcp` shows the server as `off`; `/mcp on <name>` retries it.
+TUI opens and `/mcp` shows the server as `off`; `/mcp on <name>` retries it. `donsetch` is the
+exception: it is not an `mcps` entry, and warren stops when it is missing.
 
 To start over in a folder, delete its `warren.json` and run warren again.
 
