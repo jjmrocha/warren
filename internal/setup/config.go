@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -27,6 +29,10 @@ type answers struct {
 
 func askConfig(in *bufio.Reader, out io.Writer) (answers, error) {
 	var given answers
+
+	if err := intro(out); err != nil {
+		return given, err
+	}
 
 	provider, err := choose(in, out, "Provider", slices.Sorted(config.Providers.Values()))
 	if err != nil {
@@ -115,4 +121,32 @@ func read(in *bufio.Reader, out io.Writer, prompt string) (string, error) {
 	}
 
 	return strings.TrimSpace(line), nil
+}
+
+func intro(out io.Writer) error {
+	dir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintf(out, `warren — The AI Financial Analyst.
+
+First run in this folder: two questions, saved to
+
+  %s
+
+which you can edit later. warren also loads buffett-valuation and company-research from
+
+  %s
+
+and will not start without them — github.com/jjmrocha/investing-skills
+
+`, filepath.Join(dir, config.FileName), filepath.Join(home, ".claude", "skills"))
+
+	return err
 }

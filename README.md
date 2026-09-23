@@ -101,12 +101,26 @@ mkdir ~/research/acme && cd ~/research/acme
 warren
 ```
 
-It finds no `warren.json`, so it asks two questions:
+It finds no `warren.json`, so it says what it is about to do and asks two questions:
 
 ```
+warren — The AI Financial Analyst.
+
+First run in this folder: two questions, saved to
+
+  /Users/you/research/acme/warren.json
+
+which you can edit later. warren also loads buffett-valuation and company-research from
+
+  /Users/you/.claude/skills
+
+and will not start without them — github.com/jjmrocha/investing-skills
+
 Provider [anthropic, ollama, openrouter]: openrouter
 Model: z-ai/glm-5.3-flash
 ```
+
+Both paths are the real ones — the folder you started warren in, and your home directory.
 
 From the answers it writes `warren.json` in that folder, with the variable holding your key
 filled in from the provider — `OPEN_ROUTER_KEY` for OpenRouter, `ANTHROPIC_API_KEY` for

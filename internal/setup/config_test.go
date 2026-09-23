@@ -3,6 +3,8 @@ package setup
 import (
 	"bufio"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -30,6 +32,27 @@ func TestAskConfig(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		assert.Equal(t, answers{provider: testOpenRouter, model: testModel}, result)
+	})
+
+	t.Run("opens with what setup is about to do", func(t *testing.T) {
+		// given
+		workDir(t)
+		t.Setenv("HOME", t.TempDir())
+
+		var out strings.Builder
+
+		in := bufio.NewReader(strings.NewReader(testOllama + "\n" + testOllamaModel + "\n"))
+		// when
+		_, err := askConfig(in, &out)
+		// then
+		require.NoError(t, err)
+
+		dir, err := os.Getwd()
+		require.NoError(t, err)
+		assert.Contains(t, out.String(), filepath.Join(dir, config.FileName))
+		assert.Contains(t, out.String(), filepath.Join(os.Getenv("HOME"), ".claude", "skills"))
+		assert.Contains(t, out.String(), "buffett-valuation")
+		assert.Contains(t, out.String(), "company-research")
 	})
 
 	t.Run("lists the options it accepts", func(t *testing.T) {
