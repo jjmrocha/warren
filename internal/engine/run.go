@@ -45,6 +45,8 @@ func Run(ctx context.Context, cfg *config.Config) error {
 
 	defer func() { _ = filePack.Close() }()
 
+	toolPacks := []packs.ToolPack{filePack}
+
 	webPack, err := packs.WebTools(ctx, toolBox)
 	if err != nil {
 		return err
@@ -52,12 +54,16 @@ func Run(ctx context.Context, cfg *config.Config) error {
 
 	defer func() { _ = webPack.Close() }()
 
+	toolPacks = append(toolPacks, webPack)
+
 	datePack, err := packs.DateTools(toolBox)
 	if err != nil {
 		return err
 	}
 
 	defer func() { _ = datePack.Close() }()
+
+	toolPacks = append(toolPacks, datePack)
 
 	// Initialize the agent
 	ag, err := agent.New(agent.Config{}, llmClient)
@@ -74,9 +80,14 @@ func Run(ctx context.Context, cfg *config.Config) error {
 		chat.WithSkills(skills),
 	)
 
+	// Build prompt
+	promptRequest := prompt.BuilderRequest{
+		Tools: toolInstructions(ctx, toolPacks, mng),
+	}
+
 	// Set session
 	ag.StartSession(agent.SessionConfig{
-		Prompt:  prompt.Build(),
+		Prompt:  prompt.Build(&promptRequest),
 		Skills:  skills,
 		ToolBox: toolBox,
 	})
