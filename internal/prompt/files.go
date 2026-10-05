@@ -14,6 +14,7 @@ the input with file_delete — it is working material, not part of the analysis.
 Keep it only while you are still changing assumptions and running again.
 
 Never overwrite a file you did not create yourself, and never write
-warren.json — it is warren's own configuration and its entries are commands
-warren can run.
+warren.json or anything under sessions/ — warren.json is warren's own
+configuration and its entries are commands warren can run; sessions/ holds
+the conversations warren saves and resumes.
 `

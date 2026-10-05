@@ -3,6 +3,7 @@ package setup
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -28,38 +29,33 @@ type answers struct {
 }
 
 func askConfig(in *bufio.Reader, out io.Writer) (answers, error) {
-	var given answers
-
 	if err := intro(out); err != nil {
-		return given, err
+		return answers{}, err
 	}
 
-	provider, err := choose(in, out, "Provider", slices.Sorted(config.Providers.Values()))
+	providers := slices.Sorted(config.Providers.Values())
+	choices := strings.Join(providers, ", ")
+
+	provider, err := ask(in, out, "Provider ["+choices+"]: ", func(answer string) bool {
+		return slices.Contains(providers, answer)
+	}, "is not one of: "+choices)
 	if err != nil {
-		return given, err
+		return answers{}, err
 	}
 
-	given.provider = provider
-
-	model, err := match(in, out, "Model", modelPattern)
+	model, err := ask(in, out, "Model: ", modelPattern.MatchString, "is not a valid answer")
 	if err != nil {
-		return given, err
+		return answers{}, err
 	}
 
-	given.model = model
-
-	return given, nil
-}
-
-func keyEnvFor(provider string) string {
-	return keyEnvs[provider]
+	return answers{provider: provider, model: model}, nil
 }
 
 func renderConfig(given answers) ([]byte, error) {
 	cfg := config.Config{
 		LLM: config.LLM{
 			Provider:  given.provider,
-			APIKeyEnv: keyEnvFor(given.provider),
+			APIKeyEnv: keyEnvs[given.provider],
 			Model:     given.model,
 			Models:    []string{given.model},
 			Effort:    string(llm.EffortMedium),
@@ -78,37 +74,18 @@ func renderConfig(given answers) ([]byte, error) {
 	return json.MarshalIndent(cfg, "", "  ")
 }
 
-func choose(in *bufio.Reader, out io.Writer, question string, options []string) (string, error) {
-	prompt := fmt.Sprintf("%s [%s]: ", question, strings.Join(options, ", "))
-
+func ask(in *bufio.Reader, out io.Writer, prompt string, valid func(string) bool, complaint string) (string, error) {
 	for {
 		answer, err := read(in, out, prompt)
 		if err != nil {
 			return "", err
 		}
 
-		if slices.Contains(options, answer) {
+		if valid(answer) {
 			return answer, nil
 		}
 
-		_, _ = fmt.Fprintf(out, "%q is not one of: %s\n", answer, strings.Join(options, ", "))
-	}
-}
-
-func match(in *bufio.Reader, out io.Writer, question string, pattern *regexp.Regexp) (string, error) {
-	prompt := question + ": "
-
-	for {
-		answer, err := read(in, out, prompt)
-		if err != nil {
-			return "", err
-		}
-
-		if pattern.MatchString(answer) {
-			return answer, nil
-		}
-
-		_, _ = fmt.Fprintf(out, "%q is not a valid answer\n", answer)
+		_, _ = fmt.Fprintf(out, "%q %s\n", answer, complaint)
 	}
 }
 
@@ -116,8 +93,12 @@ func read(in *bufio.Reader, out io.Writer, prompt string) (string, error) {
 	_, _ = fmt.Fprint(out, prompt)
 
 	line, err := in.ReadString('\n')
-	if err != nil && line == "" {
+	if errors.Is(err, io.EOF) && line == "" {
 		return "", ErrNoAnswer
+	}
+
+	if err != nil && !errors.Is(err, io.EOF) {
+		return "", err
 	}
 
 	return strings.TrimSpace(line), nil

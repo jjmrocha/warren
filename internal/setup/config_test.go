@@ -3,10 +3,12 @@ package setup
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/iotest"
 	"time"
 
 	"github.com/jjmrocha/ai-toolkit/llm"
@@ -89,28 +91,16 @@ func TestAskConfig(t *testing.T) {
 		// then
 		assert.ErrorIs(t, err, ErrNoAnswer)
 	})
-}
 
-func TestKeyEnvFor(t *testing.T) {
-	t.Run("names the variable the provider reads", func(t *testing.T) {
-		testCases := []struct {
-			name     string
-			provider string
-			expected string
-		}{
-			{name: testOpenRouter, provider: testOpenRouter, expected: "OPEN_ROUTER_KEY"},
-			{name: testAnthropic, provider: testAnthropic, expected: "ANTHROPIC_API_KEY"},
-			{name: testOllama, provider: testOllama, expected: ""},
-		}
-
-		for _, testCase := range testCases {
-			t.Run(testCase.name, func(t *testing.T) {
-				// when
-				result := keyEnvFor(testCase.provider)
-				// then
-				assert.Equal(t, testCase.expected, result)
-			})
-		}
+	t.Run("reports a read failure as itself", func(t *testing.T) {
+		// given
+		expected := errors.New("is a directory")
+		in := bufio.NewReader(iotest.ErrReader(expected))
+		// when
+		_, err := askConfig(in, &strings.Builder{})
+		// then
+		assert.ErrorIs(t, err, expected)
+		assert.NotErrorIs(t, err, ErrNoAnswer)
 	})
 }
 
@@ -146,5 +136,33 @@ func TestRenderConfig(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotContains(t, string(content), "api-key-env")
 		assert.NotContains(t, string(content), "base-url")
+	})
+
+	t.Run("names the variable the provider reads", func(t *testing.T) {
+		testCases := []struct {
+			name     string
+			provider string
+			expected string
+		}{
+			{name: testOpenRouter, provider: testOpenRouter, expected: "OPEN_ROUTER_KEY"},
+			{name: testAnthropic, provider: testAnthropic, expected: "ANTHROPIC_API_KEY"},
+			{name: testOllama, provider: testOllama, expected: ""},
+		}
+
+		for _, testCase := range testCases {
+			t.Run(testCase.name, func(t *testing.T) {
+				// given
+				given := answers{provider: testCase.provider, model: testModel}
+				// when
+				content, err := renderConfig(given)
+				// then
+				require.NoError(t, err)
+
+				var result config.Config
+
+				require.NoError(t, json.Unmarshal(content, &result))
+				assert.Equal(t, testCase.expected, result.LLM.APIKeyEnv)
+			})
+		}
 	})
 }

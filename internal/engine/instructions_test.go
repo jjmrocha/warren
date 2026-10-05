@@ -8,6 +8,8 @@ import (
 	"github.com/jjmrocha/ai-toolkit/mcp"
 	"github.com/jjmrocha/ai-toolkit/packs"
 	"github.com/jjmrocha/ai-toolkit/tools"
+	"github.com/jjmrocha/go-algo/fn"
+	"github.com/jjmrocha/warren/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,26 +31,14 @@ func (failingPack) Instructions(context.Context) (*mcp.Instruction, error) {
 func emptyManager(t *testing.T) *mcp.Manager {
 	t.Helper()
 
-	content := `{
-  "llm": {"provider": "openrouter", "api-key-env": "` + testKeyEnv + `", "model": "m", "effort": "medium"},
-  "skills": [],
-  "mcps": {},
-  "mcps-on": []
-}`
-
-	mng := newMCPManager(tools.NewToolBox(), testConfig(t, content))
+	mng := newMCPManager(tools.NewToolBox(), &config.Config{})
 	t.Cleanup(mng.Close)
 
 	return mng
 }
 
 func instructionNames(instructions []mcp.Instruction) []string {
-	names := make([]string, 0, len(instructions))
-	for _, instruction := range instructions {
-		names = append(names, instruction.Name)
-	}
-
-	return names
+	return fn.Map(instructions, func(instruction mcp.Instruction) string { return instruction.Name })
 }
 
 func TestToolInstructions(t *testing.T) {

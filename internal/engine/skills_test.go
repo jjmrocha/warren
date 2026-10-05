@@ -12,39 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const testKeyEnv = "WARREN_TEST_KEY"
-
-func testFile(skills string) string {
-	return `{
-  "llm": {
-    "provider": "openrouter",
-    "api-key-env": "` + testKeyEnv + `",
-    "model": "z-ai/glm-5.3-flash",
-    "effort": "medium"
-  },
-  "skills": ` + skills + `,
-  "mcps": {},
-  "mcps-on": []
-}`
-}
-
-func testConfig(t *testing.T, content string) *config.Config {
-	t.Helper()
-	t.Setenv(testKeyEnv, "sk-test")
-
-	dir := t.TempDir()
-	t.Chdir(dir)
-
-	path := filepath.Join(dir, config.FileName)
-	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
-		t.Fatalf("WriteFile(%s): %v", path, err)
-	}
-
-	cfg, err := config.Load()
-	require.NoError(t, err)
-
-	return cfg
-}
+const extraSkill = "removing-ai-tells"
 
 func claudeSkills(t *testing.T, names ...string) {
 	t.Helper()
@@ -68,36 +36,33 @@ func claudeSkills(t *testing.T, names ...string) {
 func TestNewSkillCollection(t *testing.T) {
 	t.Run("reports every missing skill in one pass", func(t *testing.T) {
 		// given
-		cfg := testConfig(t, testFile(`[]`))
 		claudeSkills(t)
 		// when
-		_, err := newSkillCollection(cfg)
+		_, err := newSkillCollection(&config.Config{})
 		// then
 		require.Error(t, err)
 
-		for _, expected := range coreSkills {
+		for _, expected := range coreSkillNames() {
 			assert.Contains(t, err.Error(), expected)
 		}
 	})
 
 	t.Run("names a missing extra skill beside the missing core ones", func(t *testing.T) {
 		// given
-		cfg := testConfig(t, testFile(`["removing-ai-tells"]`))
 		claudeSkills(t)
 		// when
-		_, err := newSkillCollection(cfg)
+		_, err := newSkillCollection(&config.Config{Skills: []string{extraSkill}})
 		// then
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "removing-ai-tells")
+		assert.Contains(t, err.Error(), extraSkill)
 	})
 
 	t.Run("loads every skill the config names", func(t *testing.T) {
 		// given
-		cfg := testConfig(t, testFile(`["removing-ai-tells"]`))
-		wanted := slices.Concat(coreSkills, []string{"removing-ai-tells"})
+		wanted := slices.Concat(coreSkillNames(), []string{extraSkill})
 		claudeSkills(t, wanted...)
 		// when
-		result, err := newSkillCollection(cfg)
+		result, err := newSkillCollection(&config.Config{Skills: []string{extraSkill}})
 		// then
 		require.NoError(t, err)
 
@@ -107,20 +72,11 @@ func TestNewSkillCollection(t *testing.T) {
 		}
 	})
 
-	t.Run("carries the two skills warren is built on", func(t *testing.T) {
-		// given
-		expected := []string{"buffett-valuation", "company-research"}
-		// when
-		result := coreSkills
-		// then
-		assert.Equal(t, expected, result)
-	})
-
 	t.Run("routes every core skill in the prompt", func(t *testing.T) {
 		// given
-		result := prompt.Build(&prompt.BuilderRequest{})
+		result := prompt.Build(nil)
 		// then
-		for _, name := range coreSkills {
+		for _, name := range coreSkillNames() {
 			assert.Contains(t, result, "| "+name)
 		}
 	})

@@ -4,14 +4,15 @@ import (
 	"testing"
 
 	"github.com/jjmrocha/ai-toolkit/tools"
+	"github.com/jjmrocha/warren/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func statusNames(t *testing.T, content string) []string {
+func statusNames(t *testing.T, cfg *config.Config) []string {
 	t.Helper()
 
-	mng := newMCPManager(tools.NewToolBox(), testConfig(t, content))
+	mng := newMCPManager(tools.NewToolBox(), cfg)
 	t.Cleanup(mng.Close)
 
 	names := make([]string, 0)
@@ -26,26 +27,19 @@ func statusNames(t *testing.T, content string) []string {
 func TestNewMCPManager(t *testing.T) {
 	t.Run("registers every server the config names", func(t *testing.T) {
 		// given
-		content := `{
-  "llm": {"provider": "openrouter", "api-key-env": "` + testKeyEnv + `", "model": "m", "effort": "medium"},
-  "skills": [],
-  "mcps": {
-    "yfinance-mcp": {"command": "uvx", "args": ["yfmcp@latest"], "timeout": 60},
-    "context7": {"command": "npx", "args": ["-y", "@upstash/context7-mcp"]}
-  },
-  "mcps-on": []
-}`
+		cfg := &config.Config{MCPs: map[string]config.MCP{
+			"yfinance-mcp": {Command: "uvx", Args: []string{"yfmcp@latest"}, Timeout: 60},
+			"context7":     {Command: "npx", Args: []string{"-y", "@upstash/context7-mcp"}},
+		}}
 		// when
-		result := statusNames(t, content)
+		result := statusNames(t, cfg)
 		// then
 		assert.ElementsMatch(t, []string{"yfinance-mcp", "context7"}, result)
 	})
 
 	t.Run("registers nothing when the config has no servers", func(t *testing.T) {
-		// given
-		content := testFile(`[]`)
 		// when
-		result := statusNames(t, content)
+		result := statusNames(t, &config.Config{})
 		// then
 		assert.Empty(t, result)
 	})
@@ -54,13 +48,10 @@ func TestNewMCPManager(t *testing.T) {
 func TestStartMCPs(t *testing.T) {
 	t.Run("carries on when a boot server fails to start", func(t *testing.T) {
 		// given
-		content := `{
-  "llm": {"provider": "openrouter", "api-key-env": "` + testKeyEnv + `", "model": "m", "effort": "medium"},
-  "skills": [],
-  "mcps": {"broken": {"command": "definitely-not-a-binary"}},
-  "mcps-on": ["broken"]
-}`
-		cfg := testConfig(t, content)
+		cfg := &config.Config{
+			MCPs:   map[string]config.MCP{"broken": {Command: "definitely-not-a-binary"}},
+			MCPsOn: []string{"broken"},
+		}
 
 		mng := newMCPManager(tools.NewToolBox(), cfg)
 		t.Cleanup(mng.Close)

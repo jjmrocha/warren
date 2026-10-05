@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jjmrocha/ai-chat/chat"
 	"github.com/jjmrocha/ai-chat/ui"
@@ -11,23 +12,35 @@ import (
 	"github.com/jjmrocha/ai-toolkit/tools"
 	"github.com/jjmrocha/warren/internal/config"
 	"github.com/jjmrocha/warren/internal/prompt"
+	"github.com/jjmrocha/warren/internal/session"
 )
 
-func Run(ctx context.Context, cfg *config.Config) error {
+func Run(ctx context.Context, cfg *config.Config, sessionID string) error {
 	// Initialize the LLM
 	llmClient, err := llm.New(cfg.LLMConfig())
 	if err != nil {
-		return err
+		return fmt.Errorf("model: %w", err)
 	}
 
 	// Initialize the skills collection
 	skills, err := newSkillCollection(cfg)
 	if err != nil {
-		return err
+		return fmt.Errorf("skills: %w", err)
+	}
+
+	// Restore session
+	var history []llm.Message
+
+	if sessionID != "" {
+		history, err = session.Load(sessionID)
+		if err != nil {
+			return fmt.Errorf("resume: %w", err)
+		}
 	}
 
 	// Initialize the toolbox
 	toolBox := tools.NewToolBox()
+	toolBox.SetInterceptor(guardFiles)
 
 	// Initialize the MCP manager
 	mng := newMCPManager(toolBox, cfg)
@@ -38,58 +51,43 @@ func Run(ctx context.Context, cfg *config.Config) error {
 	startMCPs(ctx, mng, cfg)
 
 	// Register tools
-	filePack, err := packs.FileTools(toolBox, ".")
-	if err != nil {
-		return err
+	var toolPacks packSet
+
+	defer toolPacks.close()
+
+	if err = toolPacks.add(packs.FileTools(toolBox, ".")); err != nil {
+		return fmt.Errorf("file tools: %w", err)
 	}
 
-	defer func() { _ = filePack.Close() }()
-
-	toolPacks := []packs.ToolPack{filePack}
-
-	webPack, err := packs.WebTools(ctx, toolBox)
-	if err != nil {
-		return err
+	if err = toolPacks.add(packs.WebTools(ctx, toolBox)); err != nil {
+		return fmt.Errorf("web tools: %w", err)
 	}
 
-	defer func() { _ = webPack.Close() }()
-
-	toolPacks = append(toolPacks, webPack)
-
-	datePack, err := packs.DateTools(toolBox)
-	if err != nil {
-		return err
+	if err = toolPacks.add(packs.DateTools(toolBox)); err != nil {
+		return fmt.Errorf("date tools: %w", err)
 	}
-
-	defer func() { _ = datePack.Close() }()
-
-	toolPacks = append(toolPacks, datePack)
 
 	// Initialize the agent
 	ag, err := agent.New(agent.Config{}, llmClient)
 	if err != nil {
-		return err
+		return fmt.Errorf("agent: %w", err)
 	}
 
 	defer ag.Close()
 
 	// Initialize the chat
-	chatAgent := chat.New("WARREN", ag,
-		chat.WithDefaultCommands(),
-		chat.WithMCP(mng),
-		chat.WithSkills(skills),
-	)
+	chatAgent := chat.New("WARREN", ag, buildCommands(mng, skills, ag)...)
 
 	// Build prompt
-	promptRequest := prompt.BuilderRequest{
-		Tools: toolInstructions(ctx, toolPacks, mng),
-	}
+	systemPrompt := prompt.Build(toolInstructions(ctx, toolPacks, mng))
 
 	// Set session
 	ag.StartSession(agent.SessionConfig{
-		Prompt:  prompt.Build(&promptRequest),
-		Skills:  skills,
-		ToolBox: toolBox,
+		Prompt:   systemPrompt,
+		Skills:   skills,
+		ToolBox:  toolBox,
+		Messages: history,
+		ID:       sessionID,
 	})
 
 	return ui.Run(ctx, chatAgent)

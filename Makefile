@@ -1,4 +1,4 @@
-.PHONY: help build clean test bench lint deps tidy
+.PHONY: help build clean test lint deps tidy
 .DEFAULT_GOAL := help
 
 help:
@@ -7,8 +7,7 @@ help:
 	@echo "Targets:"
 	@echo "  build        Build warren into ./bin"
 	@echo "  clean        Remove the build output in ./bin"
-	@echo "  test         Run all tests"
-	@echo "  bench        Run benchmarks"
+	@echo "  test         Run all tests with the race detector"
 	@echo "  lint         Run golangci-lint"
 	@echo "  deps         Update dependencies"
 	@echo "  tidy         Tidy go.mod"
@@ -22,10 +21,7 @@ clean:
 	rm -rf bin
 
 test:
-	go test ./...
-
-bench:
-	go test -bench=. ./...
+	go test -race ./...
 
 lint:
 	golangci-lint run
