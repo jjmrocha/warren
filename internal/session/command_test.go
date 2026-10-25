@@ -25,6 +25,8 @@ const (
 
 var _ Source = (*agent.Agent)(nil)
 
+var exportedAt = time.Date(2026, time.October, 7, 14, 30, 15, 500_000_000, time.FixedZone("WEST", 3600))
+
 type fakeSource struct {
 	id       string
 	messages []llm.Message
@@ -110,7 +112,7 @@ func runExport(t *testing.T, src Source) *fakeContext {
 	t.Helper()
 
 	ctx := &fakeContext{}
-	ExportCommand(src).Run(ctx, "")
+	exportCmd{src: src, now: func() time.Time { return exportedAt }}.Run(ctx, "")
 
 	require.Len(t, ctx.lines, 1)
 
@@ -165,17 +167,13 @@ func TestExportCommand(t *testing.T) {
 		dir := sessionsDir(t)
 		src := session(conversation())
 		src.info = &agent.ModelInfo{Provider: "anthropic", ModelName: "claude-opus-5-5", Effort: "high"}
-		before := time.Now().UTC().Truncate(time.Second)
 		runExport(t, src)
 		// when
 		result, _ := readSession(t, dir, src.id)
 		// then
-		assert.WithinRange(t, result.Exported, before, time.Now().UTC())
-		assert.Equal(t, time.UTC, result.Exported.Location())
-
-		result.Exported = time.Time{}
 		expected := file{
 			Session:  src.id,
+			Exported: time.Date(2026, time.October, 7, 13, 30, 15, 0, time.UTC),
 			Provider: "anthropic",
 			Model:    "claude-opus-5-5",
 			Effort:   "high",
@@ -307,9 +305,9 @@ func TestExportCommand(t *testing.T) {
 		runExport(t, src)
 		expected, err := os.ReadFile(filepath.Join(dir, src.id+".json"))
 		require.NoError(t, err)
-		require.NoError(t, os.Chmod(dir, 0o500))
-		t.Cleanup(func() { _ = os.Chmod(dir, 0o700) })
-		src.messages = conversation()
+		src.messages = append(conversation(), llm.AssistantMessage{
+			ToolCalls: []llm.ToolCall{{ID: toolCallID, Name: webFetch, Arguments: map[string]any{"unencodable": make(chan int)}}},
+		})
 		// when
 		ctx := runExport(t, src)
 		// then
@@ -318,6 +316,7 @@ func TestExportCommand(t *testing.T) {
 		assert.Equal(t, errorKind, ctx.lines[0].kind)
 		assert.True(t, strings.HasPrefix(ctx.lines[0].text, "export: "), ctx.lines[0].text)
 		assert.Equal(t, expected, result)
+		assert.Equal(t, []string{src.id + ".json"}, fileNames(t, dir))
 	})
 
 	t.Run("reports when there is no session", func(t *testing.T) {

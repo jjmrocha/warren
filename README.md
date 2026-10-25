@@ -348,7 +348,8 @@ and tools come from [ai-toolkit](https://github.com/jjmrocha/ai-toolkit); the ch
 UI and slash commands from [ai-chat](https://github.com/jjmrocha/ai-chat).
 
 `make` lists the targets. `make test` runs the tests with the race detector and `make lint`
-runs golangci-lint (v2.13.2 or newer). CI runs both, plus `govulncheck`, on every push
+runs golangci-lint (v2.14.0 or newer). CI runs both, plus `govulncheck` and a gitleaks
+secret scan, on every push
 ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 ## License

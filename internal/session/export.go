@@ -11,10 +11,10 @@ import (
 	"github.com/jjmrocha/ai-toolkit/llm"
 )
 
-func export(ctx context.Context, src Source, msgs []llm.Message) error {
+func export(ctx context.Context, src Source, msgs []llm.Message, exported time.Time) error {
 	session := file{
 		Session:  src.SessionID(),
-		Exported: time.Now().UTC().Truncate(time.Second),
+		Exported: exported.UTC().Truncate(time.Second),
 		Messages: toMessages(msgs),
 	}
 

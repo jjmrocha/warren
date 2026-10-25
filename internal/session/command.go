@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/jjmrocha/ai-chat/command"
 	"github.com/jjmrocha/ai-toolkit/agent"
@@ -18,10 +19,11 @@ type Source interface {
 
 type exportCmd struct {
 	src Source
+	now func() time.Time
 }
 
 func ExportCommand(src Source) command.Command {
-	return exportCmd{src: src}
+	return exportCmd{src: src, now: time.Now}
 }
 
 func (exportCmd) Name() string {
@@ -39,7 +41,7 @@ func (c exportCmd) Run(ctx command.Context, _ string) {
 		return
 	}
 
-	if err := export(ctx.Context(), c.src, msgs); err != nil {
+	if err := export(ctx.Context(), c.src, msgs, c.now()); err != nil {
 		ctx.Error(fmt.Sprintf("export: %v", err))
 		return
 	}

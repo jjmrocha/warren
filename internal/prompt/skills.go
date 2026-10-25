@@ -2,7 +2,8 @@ package prompt
 
 const skillsBlock = `# Skills
 Load one with skill_load before you research anything, and say which one you
-loaded.
+loaded. The skill_load call goes in the same turn as that announcement —
+an announced skill you never load is a skipped skill.
 
 | The user wants...                                                          | Load              |
 |----------------------------------------------------------------------------|-------------------|

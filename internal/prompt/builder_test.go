@@ -52,6 +52,13 @@ func TestBuild(t *testing.T) {
 		assert.Contains(t, result, "anything under sessions/")
 	})
 
+	t.Run("loads an announced skill in the same turn", func(t *testing.T) {
+		// when
+		result := Build(nil)
+		// then
+		assert.Contains(t, result, "an announced skill you never load is a skipped skill")
+	})
+
 	t.Run("names the tool that runs a skill's scripts", func(t *testing.T) {
 		// when
 		result := Build(nil)
