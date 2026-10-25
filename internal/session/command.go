@@ -35,16 +35,16 @@ func (exportCmd) Help() string {
 func (c exportCmd) Run(ctx command.Context, _ string) {
 	msgs := c.src.Messages()
 	if !slices.ContainsFunc(msgs, isTurn) {
-		ctx.Print(command.Info, "No session to export.")
+		ctx.Info("No session to export.")
 		return
 	}
 
 	if err := export(ctx.Context(), c.src, msgs); err != nil {
-		ctx.Print(command.Error, fmt.Sprintf("export: %v", err))
+		ctx.Error(fmt.Sprintf("export: %v", err))
 		return
 	}
 
-	ctx.Print(command.Info, fmt.Sprintf("Session %s exported", c.src.SessionID()))
+	ctx.Info(fmt.Sprintf("Session %s exported", c.src.SessionID()))
 }
 
 func isTurn(m llm.Message) bool {

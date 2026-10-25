@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/jjmrocha/ai-toolkit/mcp"
@@ -18,15 +17,7 @@ type silentPack struct{}
 
 func (silentPack) Close() error { return nil }
 
-func (silentPack) Instructions(context.Context) (*mcp.Instruction, error) { return nil, nil }
-
-type failingPack struct{}
-
-func (failingPack) Close() error { return nil }
-
-func (failingPack) Instructions(context.Context) (*mcp.Instruction, error) {
-	return &mcp.Instruction{Name: "failing", Text: "never used"}, errors.New("pack gone")
-}
+func (silentPack) Instructions(context.Context) *mcp.Instruction { return nil }
 
 func emptyManager(t *testing.T) *mcp.Manager {
 	t.Helper()
@@ -48,8 +39,8 @@ func TestToolInstructions(t *testing.T) {
 		datePack, err := packs.DateTools(tools.NewToolBox())
 		require.NoError(t, err)
 		t.Cleanup(func() { _ = datePack.Close() })
-		expected, err := datePack.Instructions(ctx)
-		require.NoError(t, err)
+		expected := datePack.Instructions(ctx)
+		require.NotNil(t, expected)
 		// when
 		result := toolInstructions(ctx, []packs.ToolPack{datePack}, emptyManager(t))
 		// then
@@ -66,23 +57,14 @@ func TestToolInstructions(t *testing.T) {
 		assert.Empty(t, result)
 	})
 
-	t.Run("skips a pack whose instruction fails", func(t *testing.T) {
-		// given
-		ctx := context.Background()
-		// when
-		result := toolInstructions(ctx, []packs.ToolPack{failingPack{}}, emptyManager(t))
-		// then
-		assert.Empty(t, result)
-	})
-
-	t.Run("keeps the packs that work when one of them fails", func(t *testing.T) {
+	t.Run("collects only the packs that have an instruction", func(t *testing.T) {
 		// given
 		ctx := context.Background()
 		datePack, err := packs.DateTools(tools.NewToolBox())
 		require.NoError(t, err)
 		t.Cleanup(func() { _ = datePack.Close() })
 		// when
-		result := toolInstructions(ctx, []packs.ToolPack{failingPack{}, datePack, silentPack{}}, emptyManager(t))
+		result := toolInstructions(ctx, []packs.ToolPack{silentPack{}, datePack, silentPack{}}, emptyManager(t))
 		// then
 		assert.Equal(t, []string{"date"}, instructionNames(result))
 	})

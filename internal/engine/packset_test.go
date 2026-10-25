@@ -21,7 +21,7 @@ func (p recordingPack) Close() error {
 	return nil
 }
 
-func (recordingPack) Instructions(context.Context) (*mcp.Instruction, error) { return nil, nil }
+func (recordingPack) Instructions(context.Context) *mcp.Instruction { return nil }
 
 func TestPackSet(t *testing.T) {
 	t.Run("keeps each pack that opened", func(t *testing.T) {

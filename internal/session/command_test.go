@@ -43,8 +43,15 @@ func (f fakeSource) ModelInfo(context.Context) *agent.ModelInfo {
 	return f.info
 }
 
+type kind string
+
+const (
+	infoKind  kind = "info"
+	errorKind kind = "error"
+)
+
 type printed struct {
-	kind command.Kind
+	kind kind
 	text string
 }
 
@@ -56,8 +63,12 @@ func (f *fakeContext) Agent() command.AgentController {
 	return nil
 }
 
-func (f *fakeContext) Print(kind command.Kind, text string) {
-	f.lines = append(f.lines, printed{kind: kind, text: text})
+func (f *fakeContext) Info(text string) {
+	f.lines = append(f.lines, printed{kind: infoKind, text: text})
+}
+
+func (f *fakeContext) Error(text string) {
+	f.lines = append(f.lines, printed{kind: errorKind, text: text})
 }
 
 func (f *fakeContext) Clear() error {
@@ -144,7 +155,7 @@ func TestExportCommand(t *testing.T) {
 		// when
 		ctx := runExport(t, src)
 		// then
-		expected := []printed{{kind: command.Info, text: "Session " + src.id + " exported"}}
+		expected := []printed{{kind: infoKind, text: "Session " + src.id + " exported"}}
 		assert.Equal(t, expected, ctx.lines)
 		assert.FileExists(t, filepath.Join(dir, src.id+".json"))
 	})
@@ -304,7 +315,7 @@ func TestExportCommand(t *testing.T) {
 		// then
 		result, err := os.ReadFile(filepath.Join(dir, src.id+".json"))
 		require.NoError(t, err)
-		assert.Equal(t, command.Error, ctx.lines[0].kind)
+		assert.Equal(t, errorKind, ctx.lines[0].kind)
 		assert.True(t, strings.HasPrefix(ctx.lines[0].text, "export: "), ctx.lines[0].text)
 		assert.Equal(t, expected, result)
 	})
@@ -316,7 +327,7 @@ func TestExportCommand(t *testing.T) {
 		// when
 		ExportCommand(fakeSource{}).Run(ctx, "")
 		// then
-		assert.Equal(t, []printed{{kind: command.Info, text: "No session to export."}}, ctx.lines)
+		assert.Equal(t, []printed{{kind: infoKind, text: "No session to export."}}, ctx.lines)
 		assert.NoDirExists(t, dir)
 	})
 
@@ -327,7 +338,7 @@ func TestExportCommand(t *testing.T) {
 		// when
 		ExportCommand(session(conversation()[:1])).Run(ctx, "")
 		// then
-		assert.Equal(t, []printed{{kind: command.Info, text: "No session to export."}}, ctx.lines)
+		assert.Equal(t, []printed{{kind: infoKind, text: "No session to export."}}, ctx.lines)
 		assert.NoDirExists(t, dir)
 	})
 
@@ -341,7 +352,7 @@ func TestExportCommand(t *testing.T) {
 		ExportCommand(session(conversation())).Run(ctx, "")
 		// then
 		require.Len(t, ctx.lines, 1)
-		assert.Equal(t, command.Error, ctx.lines[0].kind)
+		assert.Equal(t, errorKind, ctx.lines[0].kind)
 		assert.True(t, strings.HasPrefix(ctx.lines[0].text, "export: "), ctx.lines[0].text)
 	})
 }

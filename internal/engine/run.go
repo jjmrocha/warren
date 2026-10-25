@@ -55,7 +55,7 @@ func Run(ctx context.Context, cfg *config.Config, sessionID string) error {
 
 	defer toolPacks.close()
 
-	if err = toolPacks.add(packs.FileTools(toolBox, ".")); err != nil {
+	if err = toolPacks.add(packs.FileTools(toolBox, ".", false)); err != nil {
 		return fmt.Errorf("file tools: %w", err)
 	}
 
