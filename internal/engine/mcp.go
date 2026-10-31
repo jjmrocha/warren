@@ -3,13 +3,17 @@ package engine
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/jjmrocha/ai-toolkit/mcp"
 	"github.com/jjmrocha/ai-toolkit/tools"
 	"github.com/jjmrocha/go-algo/fn"
 	"github.com/jjmrocha/warren/internal/config"
 )
+
+type progress interface {
+	SetText(text string)
+	Println(text string)
+}
 
 func newMCPManager(tb *tools.ToolBox, cfg *config.Config) *mcp.Manager {
 	mng := mcp.NewManager(tb)
@@ -19,10 +23,12 @@ func newMCPManager(tb *tools.ToolBox, cfg *config.Config) *mcp.Manager {
 	return mng
 }
 
-func startMCPs(ctx context.Context, mng *mcp.Manager, cfg *config.Config) {
+func startMCPs(ctx context.Context, mng *mcp.Manager, cfg *config.Config, line progress) {
 	fn.ForEach(cfg.MCPsOn, func(name string) {
+		line.SetText(fmt.Sprintf("Starting MCP server %s…", name))
+
 		if err := mng.Start(ctx, name); err != nil {
-			fmt.Fprintf(os.Stderr, "starting mcp %s: %v\n", name, err)
+			line.Println(fmt.Sprintf("starting mcp %s: %v", name, err))
 		}
 	})
 }

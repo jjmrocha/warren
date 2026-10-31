@@ -23,7 +23,11 @@ type Team struct {
 	once         sync.Once
 }
 
-func Start(ctx context.Context, toolBox *tools.ToolBox, cfg *config.Config) (*Team, error) {
+type Progress interface {
+	SetText(text string)
+}
+
+func Start(ctx context.Context, toolBox *tools.ToolBox, cfg *config.Config, progress Progress) (*Team, error) {
 	team := &Team{}
 
 	if !cfg.Subagents.WebReader.Enabled {
@@ -31,6 +35,8 @@ func Start(ctx context.Context, toolBox *tools.ToolBox, cfg *config.Config) (*Te
 	}
 
 	manager := subagent.NewManager()
+
+	progress.SetText("Starting subagent web-reader…")
 
 	closeWebReader, err := registerWebReader(ctx, manager, cfg.SubagentLLMConfig(cfg.Subagents.WebReader))
 	if err != nil {

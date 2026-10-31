@@ -98,19 +98,40 @@ func installFakeWebReader(t *testing.T, err error) *fakeWebReader {
 	return fake
 }
 
+type fakeProgress struct {
+	texts []string
+}
+
+func (f *fakeProgress) SetText(text string) { f.texts = append(f.texts, text) }
+
 func TestStart(t *testing.T) {
 	t.Run("adds no subagent tool when the web-reader is disabled", func(t *testing.T) {
 		// given
 		fake := installFakeWebReader(t, nil)
 		toolBox := tools.NewToolBox()
+		line := &fakeProgress{}
 		// when
-		team, err := Start(context.Background(), toolBox, newConfig(false))
+		team, err := Start(context.Background(), toolBox, newConfig(false), line)
 		// then
 		require.NoError(t, err)
 		require.NotNil(t, team)
 		_, found := toolBox.Tool("subagent")
 		assert.False(t, found)
 		assert.Empty(t, fake.configs)
+		assert.Empty(t, line.texts)
+	})
+
+	t.Run("names the web-reader before it starts", func(t *testing.T) {
+		// given
+		installFakeWebReader(t, nil)
+		line := &fakeProgress{}
+		expected := []string{"Starting subagent web-reader…"}
+		// when
+		team, err := Start(context.Background(), tools.NewToolBox(), newConfig(true), line)
+		// then
+		require.NoError(t, err)
+		t.Cleanup(team.Close)
+		assert.Equal(t, expected, line.texts)
 	})
 
 	t.Run("adds the subagent tool listing the web-reader when it is enabled", func(t *testing.T) {
@@ -118,7 +139,7 @@ func TestStart(t *testing.T) {
 		installFakeWebReader(t, nil)
 		toolBox := tools.NewToolBox()
 		// when
-		team, err := Start(context.Background(), toolBox, newConfig(true))
+		team, err := Start(context.Background(), toolBox, newConfig(true), &fakeProgress{})
 		// then
 		require.NoError(t, err)
 		t.Cleanup(team.Close)
@@ -134,7 +155,7 @@ func TestStart(t *testing.T) {
 		cfg := newConfig(true)
 		expected := cfg.SubagentLLMConfig(cfg.Subagents.WebReader)
 		// when
-		team, err := Start(context.Background(), tools.NewToolBox(), cfg)
+		team, err := Start(context.Background(), tools.NewToolBox(), cfg, &fakeProgress{})
 		// then
 		require.NoError(t, err)
 		t.Cleanup(team.Close)
@@ -147,7 +168,7 @@ func TestStart(t *testing.T) {
 		installFakeWebReader(t, failure)
 		toolBox := tools.NewToolBox()
 		// when
-		_, err := Start(context.Background(), toolBox, newConfig(true))
+		_, err := Start(context.Background(), toolBox, newConfig(true), &fakeProgress{})
 		// then
 		require.ErrorIs(t, err, failure)
 		assert.Contains(t, err.Error(), "web-reader: ")
@@ -162,7 +183,7 @@ func TestTeamChatOption(t *testing.T) {
 		fake := installFakeWebReader(t, nil)
 		toolBox := tools.NewToolBox()
 
-		team, err := Start(context.Background(), toolBox, newConfig(true))
+		team, err := Start(context.Background(), toolBox, newConfig(true), &fakeProgress{})
 		require.NoError(t, err)
 		t.Cleanup(team.Close)
 
@@ -185,7 +206,7 @@ func TestTeamChatOption(t *testing.T) {
 		// given
 		installFakeWebReader(t, nil)
 
-		team, err := Start(context.Background(), tools.NewToolBox(), newConfig(false))
+		team, err := Start(context.Background(), tools.NewToolBox(), newConfig(false), &fakeProgress{})
 		require.NoError(t, err)
 		// when
 		chatCore := chat.New("WARREN", newMainAgent(t), team.ChatOption())
@@ -200,7 +221,7 @@ func TestTeamClose(t *testing.T) {
 		fake := installFakeWebReader(t, nil)
 		toolBox := tools.NewToolBox()
 
-		team, err := Start(context.Background(), toolBox, newConfig(true))
+		team, err := Start(context.Background(), toolBox, newConfig(true), &fakeProgress{})
 		require.NoError(t, err)
 		// when
 		team.Close()
@@ -214,7 +235,7 @@ func TestTeamClose(t *testing.T) {
 		// given
 		fake := installFakeWebReader(t, nil)
 
-		team, err := Start(context.Background(), tools.NewToolBox(), newConfig(true))
+		team, err := Start(context.Background(), tools.NewToolBox(), newConfig(true), &fakeProgress{})
 		require.NoError(t, err)
 
 		team.Close()

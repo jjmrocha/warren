@@ -48,8 +48,11 @@ func Run(ctx context.Context, cfg *config.Config, sessionID string) error {
 
 	defer mng.Close()
 
+	waiting := ui.StartWaiting(ctx, "Starting warren…")
+	defer waiting.Stop()
+
 	// Start the MCP servers the config boots
-	startMCPs(ctx, mng, cfg)
+	startMCPs(ctx, mng, cfg, waiting)
 
 	// Register tools
 	var toolPacks packSet
@@ -64,7 +67,7 @@ func Run(ctx context.Context, cfg *config.Config, sessionID string) error {
 		return fmt.Errorf("date tools: %w", err)
 	}
 
-	team, err := subagents.Start(ctx, toolBox, cfg)
+	team, err := subagents.Start(ctx, toolBox, cfg, waiting)
 	if err != nil {
 		return fmt.Errorf("subagents: %w", err)
 	}
@@ -96,6 +99,8 @@ func Run(ctx context.Context, cfg *config.Config, sessionID string) error {
 		Messages: history,
 		ID:       sessionID,
 	})
+
+	waiting.Stop()
 
 	return ui.Run(ctx, chatAgent)
 }
