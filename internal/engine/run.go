@@ -13,6 +13,7 @@ import (
 	"github.com/jjmrocha/warren/internal/config"
 	"github.com/jjmrocha/warren/internal/prompt"
 	"github.com/jjmrocha/warren/internal/session"
+	"github.com/jjmrocha/warren/internal/subagents"
 )
 
 func Run(ctx context.Context, cfg *config.Config, sessionID string) error {
@@ -59,13 +60,16 @@ func Run(ctx context.Context, cfg *config.Config, sessionID string) error {
 		return fmt.Errorf("file tools: %w", err)
 	}
 
-	if err = toolPacks.add(packs.WebTools(ctx, toolBox)); err != nil {
-		return fmt.Errorf("web tools: %w", err)
-	}
-
 	if err = toolPacks.add(packs.DateTools(toolBox)); err != nil {
 		return fmt.Errorf("date tools: %w", err)
 	}
+
+	team, err := subagents.Start(ctx, toolBox, cfg)
+	if err != nil {
+		return fmt.Errorf("subagents: %w", err)
+	}
+
+	defer team.Close()
 
 	// Initialize the agent
 	ag, err := agent.New(agent.Config{}, llmClient)
@@ -76,10 +80,13 @@ func Run(ctx context.Context, cfg *config.Config, sessionID string) error {
 	defer ag.Close()
 
 	// Initialize the chat
-	chatAgent := chat.New("WARREN", ag, buildCommands(mng, skills, ag)...)
+	chatAgent := chat.New("WARREN", ag, append(buildCommands(mng, skills, ag), team.ChatOption())...)
 
 	// Build prompt
-	systemPrompt := prompt.Build(toolInstructions(ctx, toolPacks, mng))
+	systemPrompt := prompt.Build(prompt.Request{
+		ToolInstructions: toolInstructions(ctx, toolPacks, mng),
+		WithWebReader:    cfg.Subagents.WebReader.Enabled,
+	})
 
 	// Set session
 	ag.StartSession(agent.SessionConfig{

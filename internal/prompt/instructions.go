@@ -1,20 +1,33 @@
 package prompt
 
-import (
-	"strings"
+import "strings"
 
-	"github.com/jjmrocha/ai-toolkit/mcp"
+const (
+	instructionsStartTag = "<instructions>"
+	instructionsEndTag   = "</instructions>"
 )
 
-func buildInstructions(tools []mcp.Instruction) string {
-	blocks := []string{
-		evidenceBlock,
-		verdictsBlock,
-		skillsBlock,
-		buildTools(tools),
-		filesBlock,
-		workingBlock,
+func buildInstructions(r Request) string {
+	var builder strings.Builder
+
+	builder.WriteString("\n")
+	builder.WriteString(instructionsStartTag)
+	builder.WriteString("\n")
+
+	builder.WriteString(buildEvidence(r.WithWebReader))
+
+	if r.WithWebReader {
+		builder.WriteString(buildWebReader())
 	}
 
-	return "<instructions>\n" + strings.Join(blocks, "\n") + "</instructions>\n"
+	builder.WriteString(buildVerdicts())
+	builder.WriteString(buildSkills())
+	builder.WriteString(buildTools(r.ToolInstructions))
+	builder.WriteString(buildFiles())
+	builder.WriteString(buildWorkingWithUser())
+
+	builder.WriteString(instructionsEndTag)
+	builder.WriteString("\n")
+
+	return builder.String()
 }

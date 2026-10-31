@@ -48,6 +48,8 @@ func validate(cfg *Config) error {
 		}
 	}
 
+	problems = append(problems, validateSubagent("web-reader", cfg.Subagents.WebReader)...)
+
 	return errors.Join(problems...)
 }
 
@@ -72,6 +74,20 @@ func validateLLM(l LLM) []error {
 
 	if l.APIKeyEnv == "" || os.Getenv(l.APIKeyEnv) == "" {
 		problems = append(problems, fmt.Errorf("%w: %s", ErrMissingAPIKey, l.APIKeyEnv))
+	}
+
+	return problems
+}
+
+func validateSubagent(name string, s Subagent) []error {
+	var problems []error
+
+	if !efforts.Contains(s.Effort) {
+		problems = append(problems, fmt.Errorf("subagents.%s: %w: %s", name, ErrInvalidEffort, s.Effort))
+	}
+
+	if s.Model == "" {
+		problems = append(problems, fmt.Errorf("subagents.%s: %w", name, ErrMissingModel))
 	}
 
 	return problems

@@ -1,6 +1,7 @@
 package prompt
 
-const skillsBlock = `# Skills
+const skillsBlock = `
+# Skills
 Load one with skill_load before you research anything, and say which one you
 loaded. The skill_load call goes in the same turn as that announcement —
 an announced skill you never load is a skipped skill.
@@ -34,3 +35,7 @@ an announced skill you never load is a skipped skill.
 "What does a 20-F cover that a 10-K doesn't?"   → no skill
 "Due diligence on Greggs before I present it"   → company-research
 `
+
+func buildSkills() string {
+	return skillsBlock
+}

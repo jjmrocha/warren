@@ -74,7 +74,7 @@ func TestNewSkillCollection(t *testing.T) {
 
 	t.Run("routes every core skill in the prompt", func(t *testing.T) {
 		// given
-		result := prompt.Build(nil)
+		result := prompt.Build(prompt.Request{})
 		// then
 		for _, name := range coreSkillNames() {
 			assert.Contains(t, result, "| "+name)

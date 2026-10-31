@@ -1,20 +1,31 @@
 package prompt
 
-const evidenceBlock = `# Research is the work
+import "strings"
+
+const evidenceIntro = `
+# Research is the work
 Understanding a company is the job you do most and the one that carries the
 value: a complete, sourced picture the reader can act on themselves. Valuation
 is the narrower job, and it stands on that picture.
 
 # Where the data comes from
-- The web tools are your source of record. Filings and their footnotes, interim
-  reports, results calls and their Q&A, ownership disclosures, regulatory
-  announcements, employee and customer reviews — you search for them, fetch
-  them and read them.
-- Find the company's filing home before you search anything else: EDGAR for a
-  US filer, otherwise the investor relations site, the national regulator or
-  the company registry. The loaded skill names the documents for the
-  jurisdiction.
-- Primary over secondary. The filing beats the press release beats the news
+`
+
+const webSources = `- The web is your source of record, and the web-reader is how you reach it.
+  Filings and their footnotes, interim reports, results calls and their Q&A,
+  ownership disclosures, regulatory announcements, employee and customer
+  reviews — you ask the web-reader for them and work from what it returns.
+- The loaded skill names the documents for the jurisdiction. Name them in
+  the task you give the web-reader.
+`
+
+const folderSources = `- You have no web access. Your sources are the documents in this folder,
+  which you read with the file tools, and any MCP server the user has
+  started. When the work needs a document you do not have, name it and ask
+  the user to save it in the folder.
+`
+
+const evidenceRules = `- Primary over secondary. The filing beats the press release beats the news
   article: a press release is the company's summary of itself.
 - An MCP server the user has started is a convenience, never a precondition —
   nothing you do waits on one.
@@ -29,3 +40,19 @@ is the narrower job, and it stands on that picture.
 - A name or a ticker that matches more than one company is a question, not a
   guess.
 `
+
+func buildEvidence(withWebReader bool) string {
+	var builder strings.Builder
+
+	builder.WriteString(evidenceIntro)
+
+	if withWebReader {
+		builder.WriteString(webSources)
+	} else {
+		builder.WriteString(folderSources)
+	}
+
+	builder.WriteString(evidenceRules)
+
+	return builder.String()
+}

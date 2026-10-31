@@ -69,6 +69,13 @@ func renderConfig(given answers) ([]byte, error) {
 			},
 		},
 		MCPsOn: []string{},
+		Subagents: config.Subagents{
+			WebReader: config.Subagent{
+				Model:   given.model,
+				Effort:  string(llm.EffortMedium),
+				Enabled: true,
+			},
+		},
 	}
 
 	return json.MarshalIndent(cfg, "", "  ")

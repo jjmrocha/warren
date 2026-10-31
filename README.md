@@ -138,7 +138,7 @@ contents, and saved in the folder you started warren in.
 | What | Why |
 |---|---|
 | An API key for [OpenRouter](https://openrouter.ai) or [Anthropic](https://console.anthropic.com), or a local [Ollama](https://ollama.com) | The model warren thinks with |
-| [`donsetch`](https://github.com/dondai44423/donsetch) on your `PATH` | Web search, page reading and crawling. No key or account needed. **warren will not start without it** |
+| `npx`, from [Node.js](https://nodejs.org), on your `PATH` | Starts [donsetch](https://github.com/dondai44423/donsetch), the web-reader's search, page reading and crawling. No key or account needed. **warren will not start without it** while the web-reader is on |
 | [`uv`](https://github.com/astral-sh/uv) on your `PATH` | Runs the valuation script, and the optional market-data server |
 | [Go 1.27+](https://go.dev/dl/) | To build warren |
 
@@ -247,6 +247,20 @@ warren -resume <id>
 
 The conversation is replayed on screen and the model continues from it.
 
+### The web-reader
+
+warren does not read the web itself. It hands each piece of reading to a helper agent, the
+web-reader: which company, which documents and periods, and what to bring back. The
+web-reader searches, reads the filings and pages, and returns only what was asked for, with
+every figure copied as printed and given its document, period and URL. The pages it read
+never enter warren's conversation, so long research sessions stay focused. While it works,
+a progress line under the chat shows it.
+
+The web-reader runs on its own model, set under `subagents.web-reader` in `warren.json`. It
+can be a cheaper model than warren's own. Set `enabled` to `false` and warren has no web
+access at all: it works only from the documents in the folder and any data server you start,
+and asks you to save a document it needs but does not have.
+
 ### Market data (optional)
 
 Every new `warren.json` includes [yfmcp](https://pypi.org/project/yfmcp/), registered as
@@ -254,9 +268,9 @@ Every new `warren.json` includes [yfmcp](https://pypi.org/project/yfmcp/), regis
 It is off by default. Start it in a session with `/mcp on yfinance-mcp`; `uv` fetches it the
 first time.
 
-warren works fully without it. Filings, results calls and disclosures are all on the web, and
-that is where the research goes anyway. The server is a shortcut to price data and financial
-series, not a source warren depends on.
+warren works fully without it while the web-reader is on. Filings, results calls and
+disclosures are all on the web, and that is where the research goes anyway. The server is a
+shortcut to price data and financial series, not a source warren depends on.
 
 ### Your own skills
 
@@ -284,7 +298,10 @@ default. Delete it and the next run asks the two questions again.
   "mcps": {
     "yfinance-mcp": { "command": "uvx", "args": ["yfmcp@latest"], "timeout": 60 }
   },
-  "mcps-on": []
+  "mcps-on": [],
+  "subagents": {
+    "web-reader": { "model": "z-ai/glm-5.3-flash", "effort": "medium", "enabled": true }
+  }
 }
 ```
 
@@ -299,10 +316,17 @@ default. Delete it and the next run asks the two questions again.
 | `skills` | Extra skills by name, loaded from `~/.claude/skills` |
 | `mcps` | Data servers warren can start: `command`, `args`, `env` (variables passed through from your shell), `timeout` in seconds (`0` or absent means no limit). Names use letters, digits, `_` and `-` |
 | `mcps-on` | The servers started at launch. Empty by default: the rest wait for `/mcp on <name>` |
+| `subagents.web-reader.model` | The model the web-reader runs on. It uses `llm`'s provider, endpoint and key. Required |
+| `subagents.web-reader.effort` | `off`, `low`, `medium` or `max`, as for `llm.effort`. Required |
+| `subagents.web-reader.enabled` | `true` to give warren the web through the web-reader; `false` for no web access at all. Absent means `false` |
 
 warren checks the file before it opens a session. A misspelled key is an error, not
 something silently ignored, and a bad value stops warren with every faulty value listed at
 once.
+
+A `warren.json` written before the web-reader existed has no `subagents` section, and warren
+stops with `subagents.web-reader: model is not set`. Add the section shown above to that
+folder's file. Setup never rewrites a file that is already there.
 
 ### Safety
 
@@ -324,7 +348,8 @@ research it belongs to.
 
 | Message | Cause | Fix |
 |---|---|---|
-| `error starting mcp donsetch: exec: "donsetch": executable file not found in $PATH` | The web tools have no server | Install [donsetch](https://github.com/dondai44423/donsetch) and put it on your `PATH` |
+| `subagents: web-reader: web tools: error starting mcp donsetch: exec: "npx": executable file not found in $PATH` | The web-reader cannot start its web tools | Install [Node.js](https://nodejs.org), which brings `npx`, or set `subagents.web-reader.enabled` to `false` |
+| `subagents.web-reader: model is not set` | `warren.json` has no `subagents` section, or no model in it | Add the section from [Configure](#configure) |
 | `skill folder not found: …` | A skill is missing from `~/.claude/skills` | Install it (step 2 above). Every missing skill is listed at once |
 | `api key variable is not set` | `api-key-env` names a variable with no value | `export` it, or point `api-key-env` at the one you use |
 | `no answer to read` | Setup ran with nothing to read, for example through a pipe, a redirect, or Ctrl-D at a question | Run warren in a terminal and answer the questions. Nothing was written; the next run asks again |

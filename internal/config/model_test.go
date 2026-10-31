@@ -13,10 +13,11 @@ import (
 
 func configWith(overrides ...string) string {
 	fields := map[string]string{
-		"llm":     `{"provider": "openrouter", "api-key-env": "` + testKeyEnv + `", "model": "` + testModel + `", "effort": "medium"}`,
-		"skills":  `[]`,
-		"mcps":    `{}`,
-		"mcps-on": `[]`,
+		"llm":       `{"provider": "openrouter", "api-key-env": "` + testKeyEnv + `", "model": "` + testModel + `", "effort": "medium"}`,
+		"skills":    `[]`,
+		"mcps":      `{}`,
+		"mcps-on":   `[]`,
+		"subagents": `{"web-reader": {"model": "` + testSubagentModel + `", "effort": "medium", "enabled": true}}`,
 	}
 
 	for _, override := range overrides {
@@ -67,6 +68,21 @@ func TestLLMConfig(t *testing.T) {
 		assert.Equal(t, testModel, result.Model)
 		assert.Equal(t, []string{testModel, "deepseek/deepseek-v4-pro"}, result.Models)
 		assert.Equal(t, llm.EffortMedium, result.Effort)
+		assert.Equal(t, "sk-test", result.APIKey)
+		assert.Empty(t, result.BaseURL)
+	})
+}
+
+func TestSubagentLLMConfig(t *testing.T) {
+	t.Run("uses the main settings with the subagent's model and effort", func(t *testing.T) {
+		// given
+		config := mustLoad(t, validConfig())
+		// when
+		result := config.SubagentLLMConfig(config.Subagents.WebReader)
+		// then
+		assert.Equal(t, llm.ProviderOpenRouter, result.Provider)
+		assert.Equal(t, testSubagentModel, result.Model)
+		assert.Equal(t, llm.EffortLow, result.Effort)
 		assert.Equal(t, "sk-test", result.APIKey)
 		assert.Empty(t, result.BaseURL)
 	})

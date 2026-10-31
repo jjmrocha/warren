@@ -21,10 +21,11 @@ var Providers = sets.New(
 )
 
 type Config struct {
-	LLM    LLM            `json:"llm"`
-	Skills []string       `json:"skills"`
-	MCPs   map[string]MCP `json:"mcps"`
-	MCPsOn []string       `json:"mcps-on"`
+	LLM       LLM            `json:"llm"`
+	Skills    []string       `json:"skills"`
+	MCPs      map[string]MCP `json:"mcps"`
+	MCPsOn    []string       `json:"mcps-on"`
+	Subagents Subagents      `json:"subagents"`
 }
 
 type LLM struct {
@@ -34,6 +35,16 @@ type LLM struct {
 	Model     string   `json:"model"`
 	Models    []string `json:"models"`
 	Effort    string   `json:"effort"`
+}
+
+type Subagents struct {
+	WebReader Subagent `json:"web-reader"`
+}
+
+type Subagent struct {
+	Model   string `json:"model"`
+	Effort  string `json:"effort"`
+	Enabled bool   `json:"enabled"`
 }
 
 type MCP struct {
@@ -52,6 +63,14 @@ func (c *Config) LLMConfig() llm.Config {
 		Models:   c.LLM.Models,
 		Effort:   llm.Effort(c.LLM.Effort),
 	}
+}
+
+func (c *Config) SubagentLLMConfig(s Subagent) llm.Config {
+	llmConfig := c.LLMConfig()
+	llmConfig.Model = s.Model
+	llmConfig.Effort = llm.Effort(s.Effort)
+
+	return llmConfig
 }
 
 func (c *Config) MCPClients() []mcp.ClientConfig {

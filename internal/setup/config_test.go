@@ -125,6 +125,8 @@ func TestRenderConfig(t *testing.T) {
 		assert.Empty(t, result.MCPsOn)
 		assert.Equal(t, []string{"yfinance-mcp"}, names(result.MCPClients()))
 		assert.Equal(t, 60*time.Second, result.MCPClients()[0].ToolCallTimeout)
+		expected := config.Subagent{Model: testModel, Effort: string(llm.EffortMedium), Enabled: true}
+		assert.Equal(t, expected, result.Subagents.WebReader)
 	})
 
 	t.Run("leaves out what the provider does not need", func(t *testing.T) {

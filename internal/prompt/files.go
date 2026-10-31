@@ -1,6 +1,7 @@
 package prompt
 
-const filesBlock = `# Files
+const filesBlock = `
+# Files
 Deliver your answer in the chat; write a file when the user asks for one or
 when the loaded skill tells you to. Write it as Markdown, named for the company
 and what it holds. Keep it to one file in the folder itself; make a subfolder
@@ -18,3 +19,7 @@ warren.json or anything under sessions/ — warren.json is warren's own
 configuration and its entries are commands warren can run; sessions/ holds
 the conversations warren saves and resumes.
 `
+
+func buildFiles() string {
+	return filesBlock
+}

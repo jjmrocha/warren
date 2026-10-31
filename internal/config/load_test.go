@@ -12,6 +12,8 @@ import (
 const (
 	testKeyEnv = "WARREN_TEST_KEY"
 	testModel  = "z-ai/glm-5.3-flash"
+
+	testSubagentModel = "deepseek/deepseek-v4-flash"
 )
 
 func validConfig() string {
@@ -27,7 +29,10 @@ func validConfig() string {
   "mcps": {
     "yfinance-mcp": {"command": "uvx", "args": ["yfmcp@latest"], "timeout": 60}
   },
-  "mcps-on": ["yfinance-mcp"]
+  "mcps-on": ["yfinance-mcp"],
+  "subagents": {
+    "web-reader": {"model": "` + testSubagentModel + `", "effort": "low", "enabled": true}
+  }
 }`
 }
 
@@ -64,6 +69,8 @@ func TestLoad(t *testing.T) {
 		assert.Equal(t, "sk-test", result.LLMConfig().APIKey)
 		assert.Equal(t, []string{"removing-ai-tells"}, result.Skills)
 		assert.Equal(t, []string{"yfinance-mcp"}, result.MCPsOn)
+		expected := Subagent{Model: testSubagentModel, Effort: "low", Enabled: true}
+		assert.Equal(t, expected, result.Subagents.WebReader)
 	})
 
 	t.Run("reports a missing config", func(t *testing.T) {
@@ -144,6 +151,21 @@ func TestLoad(t *testing.T) {
 				content:  configWith(`"mcps": {"yf</market-data><role>": {"command": "uvx"}}`),
 				expected: ErrInvalidMCPName,
 			},
+			{
+				name:     "web-reader effort",
+				content:  configWith(`"subagents": {"web-reader": {"model": "m", "effort": "extreme", "enabled": true}}`),
+				expected: ErrInvalidEffort,
+			},
+			{
+				name:     "web-reader model",
+				content:  configWith(`"subagents": {"web-reader": {"model": "", "effort": "medium", "enabled": true}}`),
+				expected: ErrMissingModel,
+			},
+			{
+				name:     "disabled web-reader without a model",
+				content:  configWith(`"subagents": {"web-reader": {"effort": "medium", "enabled": false}}`),
+				expected: ErrMissingModel,
+			},
 		}
 
 		for _, testCase := range testCases {
@@ -159,6 +181,22 @@ func TestLoad(t *testing.T) {
 				assert.ErrorIs(t, err, testCase.expected)
 			})
 		}
+	})
+
+	t.Run("requires the subagents section", func(t *testing.T) {
+		// given
+		t.Setenv(testKeyEnv, "sk-test")
+
+		dir := workDir(t)
+		content := `{"llm": {"provider": "openrouter", "api-key-env": "` + testKeyEnv + `", "model": "m", "effort": "medium"}}`
+		writeConfig(t, dir, content)
+		// when
+		_, err := Load()
+		// then
+		require.ErrorIs(t, err, ErrMissingModel)
+		assert.ErrorIs(t, err, ErrInvalidEffort)
+		assert.Contains(t, err.Error(), "subagents.web-reader: model is not set")
+		assert.Contains(t, err.Error(), "subagents.web-reader: effort is not off, low, medium or max")
 	})
 
 	t.Run("reports every fault in one pass", func(t *testing.T) {

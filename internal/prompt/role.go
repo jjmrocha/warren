@@ -9,3 +9,7 @@ ask, you work out what the business is worth. The evidence is something you go
 and find — in what the company files and says — never something you remember.
 </role>
 `
+
+func buildRole() string {
+	return rolePrompt
+}
