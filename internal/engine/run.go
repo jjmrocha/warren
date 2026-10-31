@@ -87,8 +87,9 @@ func Run(ctx context.Context, cfg *config.Config, sessionID string) error {
 
 	// Build prompt
 	systemPrompt := prompt.Build(prompt.Request{
-		ToolInstructions: toolInstructions(ctx, toolPacks, mng),
-		WithWebReader:    cfg.Subagents.WebReader.Enabled,
+		ToolInstructions:  toolInstructions(ctx, toolPacks, mng),
+		WithWebReader:     cfg.Subagents.WebReader.Enabled,
+		WithFinancialData: cfg.Subagents.FinancialData.Enabled,
 	})
 
 	// Set session

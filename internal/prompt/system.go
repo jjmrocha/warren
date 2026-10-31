@@ -16,8 +16,8 @@ func buildInstructions(r Request) string {
 
 	builder.WriteString(buildEvidence(r.WithWebReader))
 
-	if r.WithWebReader {
-		builder.WriteString(buildWebReader())
+	if r.WithWebReader || r.WithFinancialData {
+		builder.WriteString(buildSubagents(r))
 	}
 
 	builder.WriteString(buildVerdicts())

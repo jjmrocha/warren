@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jjmrocha/ai-toolkit/mcp"
-	"github.com/jjmrocha/go-algo/fn"
 	"github.com/jjmrocha/warren/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,12 +39,6 @@ func answer(t *testing.T, content string) {
 		os.Stdin = stdin
 
 		_ = file.Close()
-	})
-}
-
-func names(configs []mcp.ClientConfig) []string {
-	return fn.Map(configs, func(config mcp.ClientConfig) string {
-		return config.Name
 	})
 }
 
@@ -89,7 +81,7 @@ func TestBuildIfNeed(t *testing.T) {
 				// then
 				require.NoError(t, err)
 				assert.Equal(t, testCase.provider, result.LLM.Provider)
-				assert.Equal(t, []string{"yfinance-mcp"}, names(result.MCPClients()))
+				assert.Empty(t, result.MCPClients())
 				assert.Empty(t, result.MCPsOn)
 			})
 		}

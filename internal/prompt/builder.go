@@ -7,8 +7,9 @@ import (
 )
 
 type Request struct {
-	ToolInstructions []mcp.Instruction
-	WithWebReader    bool
+	ToolInstructions  []mcp.Instruction
+	WithWebReader     bool
+	WithFinancialData bool
 }
 
 func Build(r Request) string {

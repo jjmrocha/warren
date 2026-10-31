@@ -38,7 +38,8 @@ type LLM struct {
 }
 
 type Subagents struct {
-	WebReader Subagent `json:"web-reader"`
+	WebReader     Subagent `json:"web-reader"`
+	FinancialData Subagent `json:"financial-data"`
 }
 
 type Subagent struct {

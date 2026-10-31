@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 	"testing/iotest"
-	"time"
 
 	"github.com/jjmrocha/ai-toolkit/llm"
 	"github.com/jjmrocha/warren/internal/config"
@@ -123,10 +122,10 @@ func TestRenderConfig(t *testing.T) {
 		assert.Equal(t, string(llm.EffortMedium), result.LLM.Effort)
 		assert.Empty(t, result.Skills)
 		assert.Empty(t, result.MCPsOn)
-		assert.Equal(t, []string{"yfinance-mcp"}, names(result.MCPClients()))
-		assert.Equal(t, 60*time.Second, result.MCPClients()[0].ToolCallTimeout)
+		assert.Empty(t, result.MCPClients())
 		expected := config.Subagent{Model: testModel, Effort: string(llm.EffortMedium), Enabled: true}
 		assert.Equal(t, expected, result.Subagents.WebReader)
+		assert.Equal(t, expected, result.Subagents.FinancialData)
 	})
 
 	t.Run("leaves out what the provider does not need", func(t *testing.T) {

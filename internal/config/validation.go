@@ -49,6 +49,7 @@ func validate(cfg *Config) error {
 	}
 
 	problems = append(problems, validateSubagent("web-reader", cfg.Subagents.WebReader)...)
+	problems = append(problems, validateSubagent("financial-data", cfg.Subagents.FinancialData)...)
 
 	return errors.Join(problems...)
 }

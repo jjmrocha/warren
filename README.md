@@ -139,7 +139,7 @@ contents, and saved in the folder you started warren in.
 |---|---|
 | An API key for [OpenRouter](https://openrouter.ai) or [Anthropic](https://console.anthropic.com), or a local [Ollama](https://ollama.com) | The model warren thinks with |
 | `npx`, from [Node.js](https://nodejs.org), on your `PATH` | Starts [donsetch](https://github.com/dondai44423/donsetch), the web-reader's search, page reading and crawling. No key or account needed. **warren will not start without it** while the web-reader is on |
-| [`uv`](https://github.com/astral-sh/uv) on your `PATH` | Runs the valuation script, and the optional market-data server |
+| [`uv`](https://github.com/astral-sh/uv) on your `PATH` | Runs the valuation script, and the financial-data agent's Yahoo Finance server. **warren will not start without it** while the financial-data agent is on |
 | [Go 1.27+](https://go.dev/dl/) | To build warren |
 
 ### 2. Install the two skills
@@ -258,19 +258,26 @@ a progress line under the chat shows it.
 
 The web-reader runs on its own model, set under `subagents.web-reader` in `warren.json`. It
 can be a cheaper model than warren's own. Set `enabled` to `false` and warren has no web
-access at all: it works only from the documents in the folder and any data server you start,
-and asks you to save a document it needs but does not have.
+access at all: it works only from the documents in the folder, the financial-data agent and
+any data server you start, and asks you to save a document it needs but does not have.
 
-### Market data (optional)
+### The financial-data agent
 
-Every new `warren.json` includes [yfmcp](https://pypi.org/project/yfmcp/), registered as
-`yfinance-mcp`. It provides quotes, fundamentals, statements and filings from Yahoo Finance.
-It is off by default. Start it in a session with `/mcp on yfinance-mcp`; `uv` fetches it the
-first time.
+A second helper agent, the financial-data agent, reads market and accounting data from Yahoo
+Finance: quotes, price history, financial statements, analyst estimates and holders. warren
+asks it for the figures it needs by ticker, and gets each one back with its period and
+currency, without Yahoo's long tables entering the conversation. warren treats these figures
+as secondary: when one disagrees with the company's filing, the filing wins and you are told
+both.
 
-warren works fully without it while the web-reader is on. Filings, results calls and
-disclosures are all on the web, and that is where the research goes anyway. The server is a
-shortcut to price data and financial series, not a source warren depends on.
+It runs [yfmcp](https://pypi.org/project/yfmcp/) 0.14.0 through `uv`. The first start on a
+machine downloads Python 3.12 and yfmcp, which takes about half a minute; later starts take
+about a second. Every ticker warren asks about is sent to Yahoo.
+
+Like the web-reader, it has its own model, under `subagents.financial-data` in `warren.json`.
+Set `enabled` to `false` and warren has no Yahoo Finance data at all. warren works fully
+without it while the web-reader is on: filings, results calls and disclosures are all on the
+web, and that is where the research goes anyway.
 
 ### Your own skills
 
@@ -295,12 +302,11 @@ default. Delete it and the next run asks the two questions again.
     "effort": "medium"
   },
   "skills": ["removing-ai-tells"],
-  "mcps": {
-    "yfinance-mcp": { "command": "uvx", "args": ["yfmcp@latest"], "timeout": 60 }
-  },
+  "mcps": {},
   "mcps-on": [],
   "subagents": {
-    "web-reader": { "model": "z-ai/glm-5.3-flash", "effort": "medium", "enabled": true }
+    "web-reader": { "model": "z-ai/glm-5.3-flash", "effort": "medium", "enabled": true },
+    "financial-data": { "model": "z-ai/glm-5.3-flash", "effort": "medium", "enabled": true }
   }
 }
 ```
@@ -319,14 +325,19 @@ default. Delete it and the next run asks the two questions again.
 | `subagents.web-reader.model` | The model the web-reader runs on. It uses `llm`'s provider, endpoint and key. Required |
 | `subagents.web-reader.effort` | `off`, `low`, `medium` or `max`, as for `llm.effort`. Required |
 | `subagents.web-reader.enabled` | `true` to give warren the web through the web-reader; `false` for no web access at all. Absent means `false` |
+| `subagents.financial-data.model` | The model the financial-data agent runs on. It uses `llm`'s provider, endpoint and key. Required |
+| `subagents.financial-data.effort` | `off`, `low`, `medium` or `max`, as for `llm.effort`. Required |
+| `subagents.financial-data.enabled` | `true` to give warren Yahoo Finance data through the financial-data agent; `false` for none. Absent means `false` |
 
 warren checks the file before it opens a session. A misspelled key is an error, not
 something silently ignored, and a bad value stops warren with every faulty value listed at
 once.
 
-A `warren.json` written before the web-reader existed has no `subagents` section, and warren
-stops with `subagents.web-reader: model is not set`. Add the section shown above to that
-folder's file. Setup never rewrites a file that is already there.
+A `warren.json` written before the helper agents existed lacks all or part of the `subagents`
+section, and warren stops with `subagents.web-reader: model is not set` or
+`subagents.financial-data: model is not set`. Add the missing entries shown above to that
+folder's file. Older files also list a `yfinance-mcp` server, which the financial-data agent
+replaces; you can delete that entry. Setup never rewrites a file that is already there.
 
 ### Safety
 
@@ -349,7 +360,8 @@ research it belongs to.
 | Message | Cause | Fix |
 |---|---|---|
 | `subagents: web-reader: web tools: error starting mcp donsetch: exec: "npx": executable file not found in $PATH` | The web-reader cannot start its web tools | Install [Node.js](https://nodejs.org), which brings `npx`, or set `subagents.web-reader.enabled` to `false` |
-| `subagents.web-reader: model is not set` | `warren.json` has no `subagents` section, or no model in it | Add the section from [Configure](#configure) |
+| `subagents: financial-data: finance tools: error starting mcp yfinance: exec: "uvx": executable file not found in $PATH` | The financial-data agent cannot start its Yahoo Finance server | Install [`uv`](https://github.com/astral-sh/uv), which brings `uvx`, or set `subagents.financial-data.enabled` to `false` |
+| `subagents.web-reader: model is not set` or `subagents.financial-data: model is not set` | `warren.json` has no `subagents` section, or lacks that entry or its model | Add the entry from [Configure](#configure) |
 | `skill folder not found: …` | A skill is missing from `~/.claude/skills` | Install it (step 2 above). Every missing skill is listed at once |
 | `api key variable is not set` | `api-key-env` names a variable with no value | `export` it, or point `api-key-env` at the one you use |
 | `no answer to read` | Setup ran with nothing to read, for example through a pipe, a redirect, or Ctrl-D at a question | Run warren in a terminal and answer the questions. Nothing was written; the next run asks again |

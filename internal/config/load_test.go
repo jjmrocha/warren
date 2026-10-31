@@ -31,7 +31,8 @@ func validConfig() string {
   },
   "mcps-on": ["yfinance-mcp"],
   "subagents": {
-    "web-reader": {"model": "` + testSubagentModel + `", "effort": "low", "enabled": true}
+    "web-reader": {"model": "` + testSubagentModel + `", "effort": "low", "enabled": true},
+    "financial-data": {"model": "` + testSubagentModel + `", "effort": "off", "enabled": false}
   }
 }`
 }
@@ -69,8 +70,11 @@ func TestLoad(t *testing.T) {
 		assert.Equal(t, "sk-test", result.LLMConfig().APIKey)
 		assert.Equal(t, []string{"removing-ai-tells"}, result.Skills)
 		assert.Equal(t, []string{"yfinance-mcp"}, result.MCPsOn)
-		expected := Subagent{Model: testSubagentModel, Effort: "low", Enabled: true}
-		assert.Equal(t, expected, result.Subagents.WebReader)
+		expected := Subagents{
+			WebReader:     Subagent{Model: testSubagentModel, Effort: "low", Enabled: true},
+			FinancialData: Subagent{Model: testSubagentModel, Effort: "off", Enabled: false},
+		}
+		assert.Equal(t, expected, result.Subagents)
 	})
 
 	t.Run("reports a missing config", func(t *testing.T) {
@@ -153,17 +157,32 @@ func TestLoad(t *testing.T) {
 			},
 			{
 				name:     "web-reader effort",
-				content:  configWith(`"subagents": {"web-reader": {"model": "m", "effort": "extreme", "enabled": true}}`),
+				content:  configWith(`"subagents": {"web-reader": {"model": "m", "effort": "extreme", "enabled": true}, "financial-data": {"model": "m", "effort": "medium"}}`),
 				expected: ErrInvalidEffort,
 			},
 			{
 				name:     "web-reader model",
-				content:  configWith(`"subagents": {"web-reader": {"model": "", "effort": "medium", "enabled": true}}`),
+				content:  configWith(`"subagents": {"web-reader": {"model": "", "effort": "medium", "enabled": true}, "financial-data": {"model": "m", "effort": "medium"}}`),
 				expected: ErrMissingModel,
 			},
 			{
 				name:     "disabled web-reader without a model",
-				content:  configWith(`"subagents": {"web-reader": {"effort": "medium", "enabled": false}}`),
+				content:  configWith(`"subagents": {"web-reader": {"effort": "medium", "enabled": false}, "financial-data": {"model": "m", "effort": "medium"}}`),
+				expected: ErrMissingModel,
+			},
+			{
+				name:     "financial-data effort",
+				content:  configWith(`"subagents": {"web-reader": {"model": "m", "effort": "medium", "enabled": true}, "financial-data": {"model": "m", "effort": "extreme", "enabled": true}}`),
+				expected: ErrInvalidEffort,
+			},
+			{
+				name:     "financial-data model",
+				content:  configWith(`"subagents": {"web-reader": {"model": "m", "effort": "medium", "enabled": true}, "financial-data": {"model": "", "effort": "medium", "enabled": true}}`),
+				expected: ErrMissingModel,
+			},
+			{
+				name:     "disabled financial-data without a model",
+				content:  configWith(`"subagents": {"web-reader": {"model": "m", "effort": "medium", "enabled": true}, "financial-data": {"effort": "medium", "enabled": false}}`),
 				expected: ErrMissingModel,
 			},
 		}
@@ -197,6 +216,8 @@ func TestLoad(t *testing.T) {
 		assert.ErrorIs(t, err, ErrInvalidEffort)
 		assert.Contains(t, err.Error(), "subagents.web-reader: model is not set")
 		assert.Contains(t, err.Error(), "subagents.web-reader: effort is not off, low, medium or max")
+		assert.Contains(t, err.Error(), "subagents.financial-data: model is not set")
+		assert.Contains(t, err.Error(), "subagents.financial-data: effort is not off, low, medium or max")
 	})
 
 	t.Run("reports every fault in one pass", func(t *testing.T) {

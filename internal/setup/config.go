@@ -61,16 +61,15 @@ func renderConfig(given answers) ([]byte, error) {
 			Effort:    string(llm.EffortMedium),
 		},
 		Skills: []string{},
-		MCPs: map[string]config.MCP{
-			"yfinance-mcp": {
-				Command: "uvx",
-				Args:    []string{"yfmcp@latest"},
-				Timeout: 60,
-			},
-		},
+		MCPs:   map[string]config.MCP{},
 		MCPsOn: []string{},
 		Subagents: config.Subagents{
 			WebReader: config.Subagent{
+				Model:   given.model,
+				Effort:  string(llm.EffortMedium),
+				Enabled: true,
+			},
+			FinancialData: config.Subagent{
 				Model:   given.model,
 				Effort:  string(llm.EffortMedium),
 				Enabled: true,

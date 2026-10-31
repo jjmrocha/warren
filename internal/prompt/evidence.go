@@ -19,10 +19,9 @@ const webSources = `- The web is your source of record, and the web-reader is ho
   the task you give the web-reader.
 `
 
-const folderSources = `- You have no web access. Your sources are the documents in this folder,
-  which you read with the file tools, and any MCP server the user has
-  started. When the work needs a document you do not have, name it and ask
-  the user to save it in the folder.
+const folderSources = `- You have no web access. Read the documents in this folder with the file
+  tools. When the work needs a document you do not have, name it and ask the
+  user to save it in the folder.
 `
 
 const evidenceRules = `- Primary over secondary. The filing beats the press release beats the news

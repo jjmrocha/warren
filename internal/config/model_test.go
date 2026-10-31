@@ -17,7 +17,7 @@ func configWith(overrides ...string) string {
 		"skills":    `[]`,
 		"mcps":      `{}`,
 		"mcps-on":   `[]`,
-		"subagents": `{"web-reader": {"model": "` + testSubagentModel + `", "effort": "medium", "enabled": true}}`,
+		"subagents": `{"web-reader": {"model": "` + testSubagentModel + `", "effort": "medium", "enabled": true}, "financial-data": {"model": "` + testSubagentModel + `", "effort": "medium", "enabled": true}}`,
 	}
 
 	for _, override := range overrides {
