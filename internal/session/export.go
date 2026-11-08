@@ -1,7 +1,6 @@
 package session
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"os"
@@ -11,17 +10,18 @@ import (
 	"github.com/jjmrocha/ai-toolkit/llm"
 )
 
-func export(ctx context.Context, src Source, msgs []llm.Message, exported time.Time) error {
+func export(src Source, msgs []llm.Message, exported time.Time) error {
 	session := file{
 		Session:  src.SessionID(),
 		Exported: exported.UTC().Truncate(time.Second),
 		Messages: toMessages(msgs),
 	}
 
-	if info := src.ModelInfo(ctx); info != nil {
+	if model := src.LLM(); model != nil {
+		info := model.ModelInfo()
 		session.Provider = string(info.Provider)
-		session.Model = info.ModelName
-		session.Effort = string(info.Effort)
+		session.Model = info.Name
+		session.Effort = string(model.Effort())
 	}
 
 	return write(&session)

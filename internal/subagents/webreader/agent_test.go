@@ -129,7 +129,7 @@ func fakeWebTools(t *testing.T, err error) *fakePack {
 
 	previous := webTools
 	t.Cleanup(func() { webTools = previous })
-	webTools = func(_ context.Context, m *tools.ToolBox) (packs.ToolPack, error) {
+	webTools = func(_ context.Context, m *tools.ToolBox, _ packs.WebConfig) (packs.ToolPack, error) {
 		if err != nil {
 			return nil, err
 		}

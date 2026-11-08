@@ -129,7 +129,7 @@ func fakeFinanceTools(t *testing.T, err error) *fakePack {
 
 	previous := financeTools
 	t.Cleanup(func() { financeTools = previous })
-	financeTools = func(_ context.Context, m *tools.ToolBox) (packs.ToolPack, error) {
+	financeTools = func(_ context.Context, m *tools.ToolBox, _ packs.FinanceConfig) (packs.ToolPack, error) {
 		if err != nil {
 			return nil, err
 		}

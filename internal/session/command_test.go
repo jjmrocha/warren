@@ -3,13 +3,15 @@ package session
 import (
 	"context"
 	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/jjmrocha/ai-chat/command"
 	"github.com/jjmrocha/ai-toolkit/agent"
 	"github.com/jjmrocha/ai-toolkit/llm"
 	"github.com/jjmrocha/go-algo/fn"
@@ -30,7 +32,7 @@ var exportedAt = time.Date(2026, time.October, 7, 14, 30, 15, 500_000_000, time.
 type fakeSource struct {
 	id       string
 	messages []llm.Message
-	info     *agent.ModelInfo
+	model    *llm.LLM
 }
 
 func (f fakeSource) SessionID() string {
@@ -41,8 +43,8 @@ func (f fakeSource) Messages() []llm.Message {
 	return f.messages
 }
 
-func (f fakeSource) ModelInfo(context.Context) *agent.ModelInfo {
-	return f.info
+func (f fakeSource) LLM() *llm.LLM {
+	return f.model
 }
 
 type kind string
@@ -61,10 +63,6 @@ type fakeContext struct {
 	lines []printed
 }
 
-func (f *fakeContext) Agent() command.AgentController {
-	return nil
-}
-
 func (f *fakeContext) Info(text string) {
 	f.lines = append(f.lines, printed{kind: infoKind, text: text})
 }
@@ -77,6 +75,8 @@ func (f *fakeContext) Clear() error {
 	return nil
 }
 
+func (f *fakeContext) Compact() {}
+
 func (f *fakeContext) Context() context.Context {
 	return context.Background()
 }
@@ -86,6 +86,21 @@ func sessionsDir(t *testing.T) string {
 	t.Chdir(t.TempDir())
 
 	return DirName
+}
+
+func newModel(t *testing.T, modelName string, effort llm.Effort) *llm.LLM {
+	t.Helper()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"model_info":{"general.architecture":"test","test.context_length":8192}}`)
+	}))
+	t.Cleanup(server.Close)
+
+	model, err := llm.New(t.Context(), llm.Config{Provider: llm.ProviderOllama, Model: modelName, BaseURL: server.URL, Effort: effort})
+	require.NoError(t, err)
+
+	return model
 }
 
 func conversation() []llm.Message {
@@ -166,7 +181,7 @@ func TestExportCommand(t *testing.T) {
 		// given
 		dir := sessionsDir(t)
 		src := session(conversation())
-		src.info = &agent.ModelInfo{Provider: "anthropic", ModelName: "claude-opus-5-5", Effort: "high"}
+		src.model = newModel(t, "claude-opus-5-5", llm.EffortMax)
 		runExport(t, src)
 		// when
 		result, _ := readSession(t, dir, src.id)
@@ -174,9 +189,9 @@ func TestExportCommand(t *testing.T) {
 		expected := file{
 			Session:  src.id,
 			Exported: time.Date(2026, time.October, 7, 13, 30, 15, 0, time.UTC),
-			Provider: "anthropic",
+			Provider: "ollama",
 			Model:    "claude-opus-5-5",
-			Effort:   "high",
+			Effort:   "max",
 			Messages: []message{
 				{Role: "system", Content: "<role>\nYou are warren\n</role>\n"},
 				{Role: "user", Content: "value KO"},

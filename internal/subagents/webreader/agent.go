@@ -22,7 +22,7 @@ var webTools = packs.WebTools
 
 func Register(ctx context.Context, manager *subagent.Manager, llmConfig llm.Config) (closeFn func(), err error) {
 	// Initialize the model
-	llmClient, err := llm.New(llmConfig)
+	llmClient, err := llm.New(ctx, llmConfig)
 	if err != nil {
 		return nil, fmt.Errorf("model: %w", err)
 	}
@@ -30,7 +30,7 @@ func Register(ctx context.Context, manager *subagent.Manager, llmConfig llm.Conf
 	// Register tools
 	toolBox := tools.NewToolBox()
 
-	webPack, err := webTools(ctx, toolBox)
+	webPack, err := webTools(ctx, toolBox, packs.WebConfig{})
 	if err != nil {
 		return nil, fmt.Errorf("web tools: %w", err)
 	}

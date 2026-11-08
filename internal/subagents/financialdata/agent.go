@@ -22,7 +22,7 @@ var financeTools = packs.FinanceTools
 
 func Register(ctx context.Context, manager *subagent.Manager, llmConfig llm.Config) (closeFn func(), err error) {
 	// Initialize the model
-	llmClient, err := llm.New(llmConfig)
+	llmClient, err := llm.New(ctx, llmConfig)
 	if err != nil {
 		return nil, fmt.Errorf("model: %w", err)
 	}
@@ -30,7 +30,7 @@ func Register(ctx context.Context, manager *subagent.Manager, llmConfig llm.Conf
 	// Register tools
 	toolBox := tools.NewToolBox()
 
-	financePack, err := financeTools(ctx, toolBox)
+	financePack, err := financeTools(ctx, toolBox, packs.FinanceConfig{})
 	if err != nil {
 		return nil, fmt.Errorf("finance tools: %w", err)
 	}

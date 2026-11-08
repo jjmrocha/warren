@@ -18,7 +18,7 @@ import (
 
 func Run(ctx context.Context, cfg *config.Config, sessionID string) error {
 	// Initialize the LLM
-	llmClient, err := llm.New(cfg.LLMConfig())
+	llmClient, err := llm.New(ctx, cfg.LLMConfig())
 	if err != nil {
 		return fmt.Errorf("model: %w", err)
 	}
@@ -59,7 +59,7 @@ func Run(ctx context.Context, cfg *config.Config, sessionID string) error {
 
 	defer toolPacks.close()
 
-	if err = toolPacks.add(packs.FileTools(toolBox, ".", false)); err != nil {
+	if err = toolPacks.add(packs.FileTools(toolBox, packs.FileConfig{Path: "."})); err != nil {
 		return fmt.Errorf("file tools: %w", err)
 	}
 

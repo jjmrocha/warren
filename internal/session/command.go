@@ -1,19 +1,17 @@
 package session
 
 import (
-	"context"
 	"fmt"
 	"slices"
 	"time"
 
 	"github.com/jjmrocha/ai-chat/command"
-	"github.com/jjmrocha/ai-toolkit/agent"
 	"github.com/jjmrocha/ai-toolkit/llm"
 )
 
 type Source interface {
 	Messages() []llm.Message
-	ModelInfo(ctx context.Context) *agent.ModelInfo
+	LLM() *llm.LLM
 	SessionID() string
 }
 
@@ -41,7 +39,7 @@ func (c exportCmd) Run(ctx command.Context, _ string) {
 		return
 	}
 
-	if err := export(ctx.Context(), c.src, msgs, c.now()); err != nil {
+	if err := export(c.src, msgs, c.now()); err != nil {
 		ctx.Error(fmt.Sprintf("export: %v", err))
 		return
 	}
